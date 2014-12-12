@@ -25,6 +25,7 @@
 #include "lcd.h" // Enthält alle Prototypen für das LCD!
 
 void init(void);
+int ad_con(void);
 unsigned int x = 0, y = 0;
 unsigned char Analog_text1[20]="AnalogIn=\0"; // 16 Zeichen pro Zeile
 unsigned char Analog_text2[20]="AnalogOut=\0";
@@ -51,7 +52,7 @@ void init()
 }
 
 
-int ad_con()
+int ad_con(void)
 {
 		for(;;)
 				{
