@@ -20,7 +20,7 @@
 #pragma config OSC=HS,WDT=OFF,LVP=OFF  // HS Oszillator, Watchdog Timer disabled, Low Voltage Programming
 
 // Define fÃ¼r LCD des neuen, grÃ¼nen Demo-Boards:
-// #define NEUE_PLATINE  // Achtung: define vor include! Bei altem braunem Demo-Board auskommentieren!
+#define NEUE_PLATINE  // Achtung: define vor include! Bei altem braunem Demo-Board auskommentieren!
 #include "p18f452.h"
 #include "lcd.h"
 
@@ -41,12 +41,12 @@ void low_prior_InterruptHandler (void);
 unsigned char Sekunde,Minute,Stunde;
 unsigned char ad_low_byte;
 unsigned char ad_high_byte;
-unsigned char AD_RESULT;
+unsigned int AD_RESULT;
 unsigned char Sekunden_text[20]="Sek\0";
 unsigned char Minuten_text[20]="Min\0";
 unsigned char Stunden_text[20]="Std\0";
 unsigned char Analog_text[20]="Analogwert= \0";
-unsigned char leer[]="          ";
+unsigned char leer[]="               ";
 
 
 void lcd_printer();
@@ -55,24 +55,25 @@ void lcd_time_update();
 
 void lcd_printer()
 {
-	lcd_gotoxy(1,1);
-	lcd_int(Sekunde);
-	lcd_printf(Sekunden_text);
-	lcd_int(Minute);
-	lcd_printf(Minuten_text);
-	lcd_int(Stunde);
-	lcd_printf(Stunden_text);
-	lcd_printf (leer);
-	lcd_printf(Analog_text);
-	lcd_int(AD_RESULT);
 
 }
 
 void lcd_adc_update()
 {
+    
+
+
 	AD_RESULT = ADRES;
-	lcd_printer();
+	
+
+	lcd_gotoxy(2,1);
+	lcd_printf(Analog_text);
+	lcd_int(AD_RESULT);
+	lcd_printf (leer);
+
+	ADCON0bits.GO = 1;
 	PIR1bits.ADIF = 0;
+
 }
 
 
@@ -81,8 +82,12 @@ void lcd_time_update()
 	
     	// Ausgabe an LCD
 	
-		Sekunde++;
-	    
+	TMR1H = 0x80;
+	TMR1L = 0x00;
+
+
+	Sekunde++;
+	
 
 	if(Sekunde==60)
 	{
@@ -102,7 +107,17 @@ void lcd_time_update()
 		}
 		
 	}
-	lcd_printer();
+
+	lcd_gotoxy(1,1);
+	lcd_int(Sekunde);
+	lcd_printf(Sekunden_text);
+	lcd_int(Minute);
+	lcd_printf(Minuten_text);
+	lcd_int(Stunde);
+	lcd_printf(Stunden_text);
+	lcd_printf (leer);
+
+
 
 	PIR1bits.TMR1IF = 0;		
 }
@@ -112,18 +127,21 @@ void init (void)
 	Sekunde = 0;
 	Minute = 0;
 	Stunde = 0;
-	
+	AD_RESULT = 0;
+	ADRES = 0;
 	lcd_init();
 	lcd_clear();
 	
+
+
+
 	//WARUM MÃœSSEN KEINE PORTS INITIALISIERT WERDEN ?! 
 	
 	
 	//Initialisieren des A/D-Wandlers und Timer 1
 	//AD-Wandler init und gleich starten da es sonstk ein Interrupt geebn wÃ¼rde
-	ADCON0 = 0x81;
-	//ADCON1 = 100001110;
-	ADCON1 = 0x8E; 
+   	ADCON0=0x81;
+    ADCON1=0x8E;
 	
 	//TIMER_1 Config
 	//-> Aufgebnstellugng von 0000 - FFFF , umsom ehr zÃ¤hlschritte umso feiner einstellbar -> feinste Einstellung
@@ -142,7 +160,7 @@ void init (void)
 	//0xFFFF +1 = 65535 +1 -> Anzahl an ZÃ¤hlschritte bis zum Interrupt
 	//Es kommt normalerweise ein overflow bei 65535 + 1 -> Aber soll schon nach 32768 kommen, daher startwert = 65535 + 1 - 32768 = 32768	
 	
-	T1CON = 0x8A; //<<---- STIMMT DAS ?!
+	T1CON = 0x8F; //<<---- STIMMT DAS ?!
 	
 	TMR1H = 0x80;
 	TMR1L = 0x00;
@@ -161,9 +179,10 @@ void init (void)
 	IPR1bits.TMR1IP = 1;
 
 	PIR1bits.ADIF = 0;
+	ADCON0bits.GO = 1;
 	PIR1bits.TMR1IF = 0;
 	
-	ADCON0bits.GO = 1;
+	
 
 }
 
