@@ -28,7 +28,16 @@
 void high_prior_InterruptHandler (void);
 void low_prior_InterruptHandler (void);
 
-
+/*
+	extern void lcd_init_new(void );    //Initialize the LCD module per Ocular specifications
+	extern void lcd_clear_new(void);	// Clear LCD display
+	extern void lcd_printf_new(unsigned char*);  // Write a constant string to the LCD
+	extern void lcd_gotoxy_new(unsigned char row, unsigned char column);
+	extern void lcd_byte_new(char num);
+	extern void lcd_int_new(int num);
+	extern void lcd_putc_new(unsigned char data);
+	extern void lcd_printf(unsigned char*);  // Write a constant string to the LCD
+*/
 unsigned char Sekunde,Minute,Stunde;
 unsigned char ad_low_byte;
 unsigned char ad_high_byte;
@@ -39,9 +48,10 @@ unsigned char Stunden_text[20]="Std\0";
 unsigned char Analog_text[20]="Analogwert= \0";
 unsigned char leer[]="          ";
 
+
 void lcd_printer();
 void lcd_adc_update();
-void lcd_timer_update();
+void lcd_time_update();
 
 void lcd_printer()
 {
@@ -54,7 +64,7 @@ void lcd_printer()
 	lcd_printf(Stunden_text);
 	lcd_printf (leer);
 	lcd_printf(Analog_text);
-	lcd_printf(AD_RESULT);
+	lcd_int(AD_RESULT);
 
 }
 
@@ -71,30 +81,30 @@ void lcd_time_update()
 	
     	// Ausgabe an LCD
 	
-		Sekunde++
+		Sekunde++;
 	    
-		if(Sekunde == 60)
-		{
-			Sekunde = 0;
-			Minute++;
-			
-			//Stunde rum
-			if(Minute == 60)
-			{
-				Minute = 0;
-				Stunde++;
-		
-				if(Stunde == 511)
-				{
-					Stunde = 0;
-				}
-			}
-		
-		}
 
+	if(Sekunde==60)
+	{
+		Sekunde = 0;
+		Minute++;
+			
+		//Stunde rum
+		if(Minute==60)
+		{
+			Minute = 0;
+			Stunde++;
+	
+			if(Stunde==511)
+			{
+				Stunde = 0;
+			}
+		}
+		
+	}
 	lcd_printer();
-	//FLag zurÃ¼cksetzen
-	PIR1bits.TMR1F = 0;		
+
+	PIR1bits.TMR1IF = 0;		
 }
 
 void init (void)
@@ -132,10 +142,11 @@ void init (void)
 	//0xFFFF +1 = 65535 +1 -> Anzahl an ZÃ¤hlschritte bis zum Interrupt
 	//Es kommt normalerweise ein overflow bei 65535 + 1 -> Aber soll schon nach 32768 kommen, daher startwert = 65535 + 1 - 32768 = 32768	
 	
-	T1CON = 0x8A //<<---- STIMMT DAS ?!
+	T1CON = 0x8A; //<<---- STIMMT DAS ?!
 	
-	TMR1 = 32768;
-	
+	TMR1H = 0x80;
+	TMR1L = 0x00;
+
 	//INTCON-REGISTER
 	RCONbits.IPEN = 1;
 	INTCONbits.GIEH = 1; //<<--WIESO MUSS NICHT MEHR KONFIGUIERT WERDEN?!
@@ -150,9 +161,10 @@ void init (void)
 	IPR1bits.TMR1IP = 1;
 
 	PIR1bits.ADIF = 0;
-	PIR1bits.TMR1F = 0;
+	PIR1bits.TMR1IF = 0;
 	
-	ADCONbits.GO = 1;
+	ADCON0bits.GO = 1;
+
 }
 
 #pragma code high_prior_InterruptVector = 0x08
